@@ -120,6 +120,11 @@ colcon build --packages-select parking_perception \
 
 - parking_perception package：发布2D检测和分割信息
 
+## 相机输入
+
+- image_width: 640
+- image_height: 320
+
 ## 参数
 
 | 参数名                 | 类型        | 解释                                        | 是否必须 | 支持的配置           | 默认值                        |
