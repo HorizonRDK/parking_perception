@@ -1,4 +1,9 @@
 # Changelog for package parking perception
+## hhp_1.0.5RC1 (2022-08-26)
+
+1. 更新package.xml，解决全局编译过程的依赖问题
+2. 更新NV12读取方式，解决图像输入为非默认分辨率时导致的图像错位问题
+
 ## hhp_1.0.5 (2022-08-19)
 
 1. 支持停车场景目标检测功能
