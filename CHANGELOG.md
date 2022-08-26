@@ -1,4 +1,8 @@
 # Changelog for package parking perception
+## hhp_1.0.5RC2 (2022-08-26)
+
+1. 更新hhp_1.0.5 遗留的默认图片路径设置错误问题
+
 ## hhp_1.0.5RC1 (2022-08-26)
 
 1. 更新package.xml，解决全局编译过程的依赖问题
