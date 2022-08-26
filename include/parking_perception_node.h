@@ -91,7 +91,7 @@ class ParkingPerceptionNode : public DnnNode {
   // 输入参数
   int is_sync_mode_ = 1;
   int shared_mem_ = 1;
-  std::string feed_image_ = "./config/images/test.jpg";
+  std::string feed_image_ = "./config/images/2.jpg";
   int dump_render_img_ = 0;
   int debug_info_ = 0;
 
