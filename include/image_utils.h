@@ -71,12 +71,6 @@ class ImageUtils {
       int scaled_img_height,
       int scaled_img_width);
 
-  static std::shared_ptr<NV12PyramidInput> GetNV12PyramidFromNV12Img(
-      const char* in_img_data,
-      int in_img_height,
-      int in_img_width,
-      int scaled_img_height,
-      int scaled_img_width);
 
   static int32_t BGRToNv12(cv::Mat &bgr_mat, cv::Mat &img_nv12);
 

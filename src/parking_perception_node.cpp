@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "dnn_node/dnn_node.h"
+#include "dnn_node/util/image_proc.h"
 #include "include/image_utils.h"
 #include "rclcpp/rclcpp.hpp"
 #include <sys/stat.h>
@@ -424,9 +425,12 @@ void ParkingPerceptionNode::RosImgProcess(
                  "Unsupport cv bridge");
 #endif
   } else if ("nv12" == img_msg->encoding) {
-    pyramid = ImageUtils::GetNV12PyramidFromNV12Img(
-        reinterpret_cast<const char *>(img_msg->data.data()), img_msg->height,
-        img_msg->width, model_input_height_, model_input_width_);
+    pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromNV12Img(
+        reinterpret_cast<const char *>(img_msg->data.data()), 
+        img_msg->height,
+        img_msg->width, 
+        model_input_height_, 
+        model_input_width_);
   }
 
   if (!pyramid) {
@@ -546,7 +550,7 @@ void ParkingPerceptionNode::RenderParkingPerception(
   cv::cvtColor(nv12, mat, CV_YUV2BGR_NV12);  //  nv12 to bgr
   delete[] buf;
 
-
+  
   // 2. render segmentation result
 
   /*
@@ -665,9 +669,12 @@ void ParkingPerceptionNode::SharedMemImgProcess(
   std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
   if ("nv12" ==
       std::string(reinterpret_cast<const char *>(img_msg->encoding.data()))) {
-    pyramid = ImageUtils::GetNV12PyramidFromNV12Img(
-        reinterpret_cast<const char *>(img_msg->data.data()), img_msg->height,
-        img_msg->width, model_input_height_, model_input_width_);
+    pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromNV12Img(
+        reinterpret_cast<const char*>(img_msg->data.data()),
+        img_msg->height,
+        img_msg->width,
+        model_input_height_,
+        model_input_width_);
   } else {
     RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
                 "share mem unsupported img encoding: %s", img_msg->encoding);
@@ -692,8 +699,6 @@ void ParkingPerceptionNode::SharedMemImgProcess(
   // inputs将会作为模型的输入通过RunInferTask接口传入
   auto inputs = std::vector<std::shared_ptr<DNNInput>>{pyramid};
   auto dnn_output = std::make_shared<ParkingPerceptionOutput>();
-  dnn_output->src_img_width_ = img_msg->width;
-  dnn_output->src_img_height_ = img_msg->height;
   dnn_output->image_msg_header_ = std::make_shared<std_msgs::msg::Header>();
   dnn_output->image_msg_header_->set__frame_id(std::to_string(img_msg->index));
   dnn_output->image_msg_header_->set__stamp(img_msg->time_stamp);
