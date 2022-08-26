@@ -546,7 +546,13 @@ void ParkingPerceptionNode::RenderParkingPerception(
   cv::cvtColor(nv12, mat, CV_YUV2BGR_NV12);  //  nv12 to bgr
   delete[] buf;
 
-
+  if(height != model_input_height_ && width != model_input_width_){
+    cv::Mat mat_tmp;
+    mat_tmp.create(model_input_height_, model_input_width_, mat.type());
+    cv::resize(mat, mat_tmp, mat_tmp.size(), 0, 0);
+    swap(mat, mat_tmp);
+  }
+  
   // 2. render segmentation result
 
   /*
