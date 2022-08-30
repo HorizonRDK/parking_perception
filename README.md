@@ -162,10 +162,12 @@ source ./install/setup.bash
 cp -r install/lib/parking_perception/config/ .
 
 # 启动parking检测 package
-# 单张图片回灌，渲染结果在Web页面可视化并保存到本地
-ros2 launch parking_perception hobot_parking_perception_feedback.launch.py 
+# mipi摄像头输入检测，渲染结果在Web页面可视化并保存到本地
+export CAM_TYPE=mipi
+ros2 launch parking_perception hobot_parking_perception.launch.py 
 
-# mipi摄像头输入检测，渲染结果在Web页面可视化
+# 单张图片回灌，渲染结果在Web页面可视化并保存到本地
+export CAM_TYPE=fb
 ros2 launch parking_perception hobot_parking_perception.launch.py 
 
 ```

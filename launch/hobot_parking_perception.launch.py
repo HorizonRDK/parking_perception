@@ -30,6 +30,20 @@ def generate_launch_description():
                 'launch/hobot_websocket_service.launch.py'))
     )
 
+    # 本地图片发布
+    fb_node = Node(
+        package='hobot_image_publisher',
+        executable='hobot_image_pub',
+        output='screen',
+        parameters=[
+            {"image_source": "./config/images/2.jpg"},
+            {"image_format": "jpg"},
+            {"output_image_w": 640},
+            {"output_image_h": 320},
+            {"is_loop": True}
+        ],
+        arguments=['--ros-args', '--log-level', 'error']
+    ),
 
     # mipi cam图片发布
     mipi_node = Node(
@@ -103,7 +117,7 @@ def generate_launch_description():
         parameters=[
             {"feed_image": ""},
             {"ai_msg_pub_topic_name": "ai_msg_parking_perception"},
-            {"dump_render_img": 0}
+            {"dump_render_img": 1}
         ],
         arguments=['--ros-args', '--log-level', 'warn']
     )
@@ -132,6 +146,10 @@ def generate_launch_description():
     elif camera_type == "mipi":
         print("using mipi cam")
         cam_node = mipi_node
+        camera_type_mipi = True
+    elif camera_type == "fb":
+        print("using feedback")
+        cam_node = fb_node
         camera_type_mipi = True
     else:
         print("invalid camera_type ", camera_type, ", which is set with export CAM_TYPE=usb/mipi, using default mipi cam")
