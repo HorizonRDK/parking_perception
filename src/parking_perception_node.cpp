@@ -550,7 +550,6 @@ void ParkingPerceptionNode::RenderParkingPerception(
   cv::cvtColor(nv12, mat, CV_YUV2BGR_NV12);  //  nv12 to bgr
   delete[] buf;
 
-  
   // 2. render segmentation result
 
   /*
