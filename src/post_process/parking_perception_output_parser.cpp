@@ -135,12 +135,9 @@ int ParkingPerceptionOutputParser::SegmentationPostProcess(
   perception.seg.num_classes = num_classes_;
 
   uint8_t* data = reinterpret_cast<uint8_t*>(tensors[0]->sysMem[0].virAddr);
-  for (int h = 0; h < height; ++h) {
-    for (int w = 0; w < width; ++w){
-      int index = h * width + w;
-      perception.seg.seg[index] = data[index] % 10;
-      perception.seg.data[index] = static_cast<float>(perception.seg.seg[index]);
-    }
+  for (int index = 0; index < height * width; index++){
+    perception.seg.seg[index] = data[index] % 10;
+    perception.seg.data[index] = static_cast<float>(data[index] % 10);
   }
 
   return 0;
@@ -165,20 +162,19 @@ int ParkingPerceptionOutputParser::DetectionPostProcess(
   }
 
   if (tensors[0]->properties.tensorLayout == HB_DNN_LAYOUT_NCHW) {
-      std::call_once(center_flag, [&, this]() {
-
+    std::call_once(center_flag, [&, this]() {
       for (size_t i = 0; i < locations.size(); i++) {  
         ComputeLocations(parking_config_.heights[i], 
                         parking_config_.widths[i], 
                         parking_config_.strides[i], locations[i]);
       }
-
-      DecodeClsDataNCHW(tensors, perception.det, model_input_height_,
-                model_input_width_, model_input_height_,
-                model_input_width_, score_threshold_,
-                nms_threshold_, nms_top_k_);
-                
     });
+
+    DecodeClsDataNCHW(tensors, perception.det, model_input_height_,
+              model_input_width_, model_input_height_,
+              model_input_width_, score_threshold_,
+              nms_threshold_, nms_top_k_);
+
   } else {
     RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"), "tensor layout error.");
   }
