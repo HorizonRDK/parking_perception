@@ -152,7 +152,7 @@ def generate_launch_description():
         cam_node = fb_node
         camera_type_mipi = True
     else:
-        print("invalid camera_type ", camera_type, ", which is set with export CAM_TYPE=usb/mipi, using default mipi cam")
+        print("invalid camera_type ", camera_type, ", which is set with export CAM_TYPE=usb/mipi/fb, using default mipi cam")
         cam_node = mipi_node
         camera_type_mipi = True
 
