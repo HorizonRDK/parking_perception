@@ -21,7 +21,6 @@
 #include "ai_msgs/msg/perception_targets.hpp"
 #include "dnn_node/dnn_node.h"
 #include "include/post_process/parking_perception_output_parser.h"
-#include "include/image_utils.h"
 #include "sensor_msgs/msg/image.hpp"
 #ifdef SHARED_MEM_ENABLED
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
@@ -61,8 +60,6 @@ class ParkingPerceptionNode : public DnnNode {
                     const NodeOptions &options = NodeOptions());
   ~ParkingPerceptionNode() override;
 
-  int PredictByImage(const std::string &image_name);
-
  protected:
   int SetNodePara() override;
   int SetOutputParser() override;
@@ -82,6 +79,8 @@ class ParkingPerceptionNode : public DnnNode {
     Parsing &seg,
     std::vector<Detection> &dets);
 
+  void SourceInputPadding(Parsing &seg);
+
 #ifdef SHARED_MEM_ENABLED
   void SharedMemImgProcess(
       const hbm_img_msgs::msg::HbmMsg1080P::ConstSharedPtr msg);
@@ -89,14 +88,14 @@ class ParkingPerceptionNode : public DnnNode {
 
  private:
   // 输入参数
-  int is_sync_mode_ = 1;
   int shared_mem_ = 1;
-  std::string feed_image_ = "./config/images/2.jpg";
   int dump_render_img_ = 0;
-  int debug_info_ = 0;
 
   std::string model_file_name_ = "config/parking_perception_640x320.bin";
   std::string model_name_ = "multibranch";
+
+  int source_input_width_ = 640;
+  int source_input_height_ = 320;
   int model_input_width_ = 640;
   int model_input_height_ = 320;
   const int32_t model_output_count_ = 13;

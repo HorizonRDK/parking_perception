@@ -23,7 +23,6 @@
 
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
-#include "include/image_utils.h"
 #include "rclcpp/rclcpp.hpp"
 #include <sys/stat.h>
 #ifdef CV_BRIDGE_PKG_ENABLED
@@ -50,30 +49,28 @@ int CalTimeMsDuration(const builtin_interfaces::msg::Time& start,
 ParkingPerceptionNode::ParkingPerceptionNode(const std::string &node_name,
                                      const NodeOptions &options)
     : DnnNode(node_name, options), output_frameCount_(0) {
-  this->declare_parameter<int>("is_sync_mode", is_sync_mode_);
   this->declare_parameter<int>("shared_mem", shared_mem_);
   this->declare_parameter<std::string>("ai_msg_pub_topic_name",
                                        msg_pub_topic_name_);
   this->declare_parameter<std::string>("image_sub_topic_name",
                                        ros_img_topic_name_);
-  this->declare_parameter<std::string>("feed_image", feed_image_);
   this->declare_parameter<int>("dump_render_img", dump_render_img_);
 
-  this->get_parameter<int>("is_sync_mode", is_sync_mode_);
   this->get_parameter<int>("shared_mem", shared_mem_);
   this->get_parameter<std::string>("ai_msg_pub_topic_name",
                                    msg_pub_topic_name_);
   this->get_parameter<std::string>("image_sub_topic_name", ros_img_topic_name_);
-  this->get_parameter<std::string>("feed_image", feed_image_);
   this->get_parameter<int>("dump_render_img", dump_render_img_);
 
-  mkdir("./result/", 666);
+  if(dump_render_img_){
+    mkdir("./result/", 666);
+  }
 
   std::stringstream ss;
   ss << "Parameter:"
-     << "\nshared_men:" << shared_mem_ << "\n is_sync_mode_: " << is_sync_mode_
+     << "\nshared_men:" << shared_mem_ 
      << "\n model_file_name_: " << model_file_name_
-     << "\nfeed_image:" << feed_image_;
+     << "\dump_render_img_:" << dump_render_img_;
   RCLCPP_WARN(rclcpp::get_logger("parking_perception"), "%s",
               ss.str().c_str());
   if (Start() == 0) {
@@ -112,14 +109,6 @@ int ParkingPerceptionNode::Start() {
       
   RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
               "msg_pub_topic_name: %s", msg_pub_topic_name_.data());
-  
-
-  if (!feed_image_.empty()) {
-    std::cout << "parking perception read image:" << feed_image_
-              << " to detect" << std::endl;
-    PredictByImage(feed_image_);
-    return 0;
-  }
 
   RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
               "Detect images that use subscriptions");
@@ -223,7 +212,7 @@ int ParkingPerceptionNode::PostProcess(
   }
 
   auto parking_perception_output = std::dynamic_pointer_cast<ParkingPerceptionOutput>(node_output);
-  if (parking_perception_output && debug_info_) {
+  if (parking_perception_output) {
     std::stringstream ss;
     ss << "Output from";
     if (parking_perception_output->image_msg_header_) {
@@ -254,7 +243,6 @@ int ParkingPerceptionNode::PostProcess(
     pub_data->header.set__stamp(parking_perception_output->image_msg_header_->stamp);
     pub_data->header.set__frame_id(parking_perception_output->image_msg_header_->frame_id);
   }
-  ai_msgs::msg::Capture capture;
 
   auto *det_result =
       dynamic_cast<ParkingPerceptionResult *>(outputs[output_index_].get());
@@ -270,17 +258,27 @@ int ParkingPerceptionNode::PostProcess(
     RenderParkingPerception(node_output, pub_data, seg, dets);
   }
 
+  // padding segmentation result for rendener different size of input
+  SourceInputPadding(seg);
+
   // update segmentation ai_msgs
+  ai_msgs::msg::Target target;
+  target.set__type("parking_space");
+  
+  ai_msgs::msg::Attribute attribute;
+  attribute.set__type("segmentation_label_count");
+  attribute.set__value(seg.num_classes);
+  target.attributes.emplace_back(std::move(attribute));
+  
+  ai_msgs::msg::Capture capture;
   capture.features.swap(seg.data);
   capture.img.height = seg.height;
   capture.img.width = seg.width;
   capture.img.step = model_input_width_ / seg.width;
-  ai_msgs::msg::Target target;
-  target.set__type("parkingspace");
   target.captures.emplace_back(std::move(capture));
   pub_data->targets.emplace_back(std::move(target));
 
-  if (debug_info_){
+  {
     RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
               "features size: %d, width: %d, height: %d, channel: %d",
               capture.features.size(),
@@ -361,7 +359,7 @@ int ParkingPerceptionNode::PostProcess(
       CalTimeMsDuration(perf_pipeline.stamp_start, perf_pipeline.stamp_end));
   pub_data->perfs.push_back(perf_pipeline);
 
-  if (debug_info_){
+  {
     std::stringstream ss;
     ss << "Publish frame_id: "
         << parking_perception_output->image_msg_header_->frame_id
@@ -380,7 +378,7 @@ int ParkingPerceptionNode::Predict(
     std::vector<std::shared_ptr<DNNInput>> &inputs,
     const std::shared_ptr<std::vector<hbDNNRoi>> rois,
     std::shared_ptr<DnnNodeOutput> dnn_output) {
-  return Run(inputs, dnn_output, rois, is_sync_mode_ == 1);
+  return Run(inputs, dnn_output, rois, 0);
 }
 
 void ParkingPerceptionNode::RosImgProcess(
@@ -417,9 +415,10 @@ void ParkingPerceptionNode::RosImgProcess(
       RCLCPP_DEBUG(rclcpp::get_logger("parking_perception"),
                    "after cvtColorForDisplay cost ms: %d", interval);
     }
-
-    pyramid = ImageUtils::GetNV12Pyramid(cv_img->image, model_input_height_,
-                                         model_input_width_);
+    pyramid = hobot::dnn_node::ImageProc::GetNV12Pyramid(
+        cv_img->image, 
+        model_input_height_,
+        model_input_width_);                                        
 #else
     RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
                  "Unsupport cv bridge");
@@ -431,6 +430,8 @@ void ParkingPerceptionNode::RosImgProcess(
         img_msg->width, 
         model_input_height_, 
         model_input_width_);
+    source_input_height_ = img_msg->height;
+    source_input_width_ = img_msg->width;
   }
 
   if (!pyramid) {
@@ -478,43 +479,6 @@ void ParkingPerceptionNode::RosImgProcess(
   return;
 }
 
-int ParkingPerceptionNode::PredictByImage(
-        const std::string &image) {
-  // 1. 将图片处理成模型输入数据类型DNNInput
-  // 使用图片生成pym，NV12PyramidInput为DNNInput的子类
-  std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
-  // bgr img，支持将图片resize到模型输入size
-  pyramid = ImageUtils::GetNV12Pyramid(
-          image, ImageType::BGR,
-          model_input_height_, model_input_width_);
-  if (!pyramid) {
-    RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
-                 "Get Nv12 pym fail with image: %s", image.c_str());
-    return -1;
-  }
-
-  // 2. 使用pyramid创建DNNInput对象inputs
-  // inputs将会作为模型的输入通过RunInferTask接口传入
-  auto inputs = std::vector<std::shared_ptr<DNNInput>>{pyramid};
-  auto dnn_output = std::make_shared<ParkingPerceptionOutput>();
-  dnn_output->src_img_width_ = 1920;
-  dnn_output->src_img_height_ = 1080;
-  dnn_output->image_msg_header_ = std::make_shared<std_msgs::msg::Header>();
-  dnn_output->image_msg_header_->set__frame_id("test_frame");
-  dnn_output->image_msg_header_->set__stamp(rclcpp::Time());
-  dnn_output->image_name_ = image;
-
-  dnn_output->pyramid = pyramid;
-  
-  // 3. 开始预测
-  uint32_t ret = Predict(inputs, nullptr, dnn_output);
-  if (ret != 0) {
-    RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
-                 "predict img failed!");
-  }
-  RCLCPP_INFO(rclcpp::get_logger("parking_perception"), "Finsh PredictByImage");
-  return ret;
-}
 
 void ParkingPerceptionNode::RenderParkingPerception(
     const std::shared_ptr<DnnNodeOutput> &node_output,
@@ -528,7 +492,6 @@ void ParkingPerceptionNode::RenderParkingPerception(
   auto pyramid = parking_perception_output->pyramid;
   if (!pyramid) {
     RCLCPP_ERROR(rclcpp::get_logger("parking_perception"), "Invalid pyramid!");
-    // return -1;
     return;
   }
 
@@ -619,15 +582,44 @@ void ParkingPerceptionNode::RenderParkingPerception(
   std::string saving_path = "result/render_parking_" +
                             ai_msg->header.frame_id + "_" +
                             std::to_string(ai_msg->header.stamp.sec) + ".jpg";
+  cv::imwrite(saving_path, mat);
 
-  if (!feed_image_.empty()){
+  {
     RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
                 "Draw result to file: %s",
                 saving_path.c_str());
   }
-  cv::imwrite(saving_path, mat);
+  
+}
 
-  // return 0;
+
+void ParkingPerceptionNode::SourceInputPadding(Parsing &seg){
+
+  if(source_input_height_ == model_input_height_ 
+      && source_input_width_ == model_input_width_){
+    return;
+  }
+  
+  cv::Mat mat_tmp(seg.seg);
+  cv::Mat mat = mat_tmp.reshape(1, seg.height).clone();
+  int factor = static_cast<int>(model_input_width_ / seg.width);
+
+  cv::copyMakeBorder(mat, mat, 
+            0, static_cast<int>(source_input_height_ / factor) - seg.height, 
+            0, static_cast<int>(source_input_width_ / factor) - seg.width, 
+            cv::BORDER_CONSTANT, 
+            cv::Scalar::all(1));
+
+  seg.height = mat.rows;
+  seg.width = mat.cols;
+  seg.data.clear();
+  seg.data.resize(mat.rows * mat.cols);
+  int index = 0;
+  for (int h = 0; h < mat.rows; ++h) {
+    for (int w = 0; w < mat.cols; ++w) {
+      seg.data[index++] = static_cast<float>(mat.data[index]);
+    }
+  }
 }
 
 
@@ -644,7 +636,7 @@ void ParkingPerceptionNode::SharedMemImgProcess(
   RCLCPP_DEBUG(rclcpp::get_logger("parking_perception"),
                "go into shared mem");
 
-  if (debug_info_){
+  {
     std::stringstream ss;
     ss << "Recved img encoding: "
       << std::string(reinterpret_cast<const char*>(img_msg->encoding.data()))
@@ -674,6 +666,8 @@ void ParkingPerceptionNode::SharedMemImgProcess(
         img_msg->width,
         model_input_height_,
         model_input_width_);
+    source_input_height_ = img_msg->height;
+    source_input_width_ = img_msg->width;
   } else {
     RCLCPP_INFO(rclcpp::get_logger("parking_perception"),
                 "share mem unsupported img encoding: %s", img_msg->encoding);

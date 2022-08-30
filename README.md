@@ -1,7 +1,7 @@
 # 功能介绍
 
 parking_perception package 是基于 hobot_dnn package开发的室外停车区域检测算法示例，基于地平线推出的多任务推理模型，在地平线的旭日X3派上使用停车区域检测模型和室内数据利用BPU进行模型推理，从而得到AI推理结果。
-本package支持直接订阅sensors/msg/Image类型的话题，并且支持读取本地图片的形式进行推理，将AI信息通过话题发布的同时会将结果渲染在图片上保存在程序运行的result目录。
+本package支持直接订阅sensors/msg/Image类型的话题，并且支持读取本地图片的形式进行推理，将AI信息通过话题发布的同时会将结果在Web页面渲染可视化，同时支持渲染图片保存在程序运行的result目录。
 
 多任务模型同时支持语义分割和目标检测。
 算法支持的语义分割类别如下：
@@ -129,10 +129,10 @@ colcon build --packages-select parking_perception \
 
 | 参数名                 | 类型        | 解释                                        | 是否必须 | 支持的配置           | 默认值                        |
 | ---------------------- | ----------- | ------------------------------------------- | -------- | -------------------- | ----------------------------- |
-| feed_image | std::string | 推理使用的图片 | 否 | 根据实际路径配置 | ./config/images/2.jpg |
 | ai_msg_pub_topic_name  | std::string | 发布包含检测结果的AI消息的topic名 | 否      | 根据实际部署环境配置 | /ai_msg_parking_perception |
 | image_sub_topic_name | std::string | 订阅ROS2消息列表中的topic名 | 否 | 根据实际部署环境配置 | /image_raw |
 | dump_render_img | int | 是否保存渲染图片到本地 | 否 | 保存在 ”result“ 目录 | 0 |
+| shared_mem  | int | 是否使用shared mem通信方式订阅图片消息。0：关闭；1：打开。打开和关闭shared mem通信方式订阅图片的topic名分别为/hbmem_img和/image_raw | 否      | 0/1 | 1 |
 
 ## 运行
 
@@ -162,10 +162,10 @@ source ./install/setup.bash
 cp -r install/lib/parking_perception/config/ .
 
 # 启动parking检测 package
-# 单张图片回灌，渲染结果保存到本地
+# 单张图片回灌，渲染结果在Web页面可视化并保存到本地
 ros2 launch parking_perception hobot_parking_perception_feedback.launch.py 
 
-# mipi摄像头输入检测，渲染结果保存到本地
+# mipi摄像头输入检测，渲染结果在Web页面可视化
 ros2 launch parking_perception hobot_parking_perception.launch.py 
 
 ```
@@ -190,11 +190,10 @@ cp -r install/lib/parking_perception/config/ .
 
 <img src="config/images/2.jpg" width="640" height="320"  alt="原始图像"/><br/>
 
-<img src="render.jpg" width="640" height="320"  alt="智能结果"/><br/>
+<img src="render.png" width="640" height="320"  alt="智能结果"/><br/>
 
 ## 结果说明
-示例中读取本地图片推理的结果会渲染到图片上，并且保存在当前路径的result目录下。可视化结果可以看到，室外场景下停车区域与行车区域有效分割开，区分了停车车道线和行车车道线
-，同时目标检测任务定位到远处车辆。
+示例中读取本地图片推理的结果会渲染到Web页面上，并且保存渲染图片在当前路径的result目录下。可视化结果可以看到，室外场景下停车区域与行车区域有效分割开，区分了停车车道线和行车车道线，同时目标检测任务定位到远处车辆。
 
 
 
