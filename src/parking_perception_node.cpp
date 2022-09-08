@@ -23,12 +23,10 @@
 
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
-#include "include/image_utils.h"
+// #include "include/image_utils.h"
 #include "rclcpp/rclcpp.hpp"
 #include <sys/stat.h>
-#ifdef CV_BRIDGE_PKG_ENABLED
 #include <cv_bridge/cv_bridge.h>
-#endif
 
 using hobot::easy_dnn::OutputDescription;
 using hobot::easy_dnn::OutputParser;
@@ -405,7 +403,6 @@ void ParkingPerceptionNode::RosImgProcess(
   // 使用图片生成pym，NV12PyramidInput为DNNInput的子类
   std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
   if ("rgb8" == img_msg->encoding) {
-#ifdef CV_BRIDGE_PKG_ENABLED
     auto cv_img =
         cv_bridge::cvtColorForDisplay(cv_bridge::toCvShare(img_msg), "bgr8");
     {
@@ -419,11 +416,9 @@ void ParkingPerceptionNode::RosImgProcess(
     pyramid = ImageUtils::GetNV12Pyramid(
         cv_img->image, 
         model_input_height_,
-        model_input_width_);                                        
-#else
+        model_input_width_);
     RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
                  "Unsupport cv bridge");
-#endif
   } else if ("nv12" == img_msg->encoding) {
     pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromNV12Img(
         reinterpret_cast<const char *>(img_msg->data.data()), 
