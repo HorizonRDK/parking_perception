@@ -72,6 +72,7 @@ link_directories(
 add_executable(${PROJECT_NAME}
   src/main.cpp
   src/parking_perception_node.cpp
+  src/image_utils.cpp
   src/post_process/parking_perception_output_parser.cpp
 )
 

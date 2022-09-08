@@ -23,6 +23,7 @@
 
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
+#include "include/image_utils.h"
 #include "rclcpp/rclcpp.hpp"
 #include <sys/stat.h>
 #ifdef CV_BRIDGE_PKG_ENABLED
@@ -415,7 +416,7 @@ void ParkingPerceptionNode::RosImgProcess(
       RCLCPP_DEBUG(rclcpp::get_logger("parking_perception"),
                    "after cvtColorForDisplay cost ms: %d", interval);
     }
-    pyramid = hobot::dnn_node::ImageProc::GetNV12Pyramid(
+    pyramid = ImageUtils::GetNV12Pyramid(
         cv_img->image, 
         model_input_height_,
         model_input_width_);                                        
