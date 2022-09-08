@@ -115,9 +115,8 @@ def generate_launch_description():
         executable='parking_perception',
         output='screen',
         parameters=[
-            {"feed_image": ""},
             {"ai_msg_pub_topic_name": "ai_msg_parking_perception"},
-            {"dump_render_img": 1}
+            {"dump_render_img": 0}
         ],
         arguments=['--ros-args', '--log-level', 'warn']
     )

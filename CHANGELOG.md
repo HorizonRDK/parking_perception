@@ -1,5 +1,10 @@
 # Changelog for package parking perception
 
+## hhp_1.0.6RC1 (2022-09-08)
+
+1. 删除CV_BRIDGE_PKG设置，修复编译失败的问题
+2. 修改默认情况下不开启渲染图片保存
+
 ## hhp_1.0.6 (2022-08-30)
 
 1. 增加支持不同输入分辨率WEB端分割渲染功能

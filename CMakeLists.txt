@@ -37,15 +37,7 @@ find_package(ai_msgs REQUIRED)
 find_package(dnn_node REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(sensor_msgs REQUIRED)
-
-option(CV_BRIDGE_PKG "using cv_bridge pkg" OFF)
-if (${CV_BRIDGE_PKG})
-  message("using cv_bridge pkg")
-  find_package(cv_bridge REQUIRED)
-  add_definitions(-DCV_BRIDGE_PKG_ENABLED)
-else()
-  message("not using cv_bridge pkg")
-endif ()
+find_package(cv_bridge REQUIRED)
 
 # BUILD_HBMEM is set in aarch64_toolchainfile.cmake
 if (${BUILD_HBMEM})
@@ -72,6 +64,7 @@ link_directories(
 add_executable(${PROJECT_NAME}
   src/main.cpp
   src/parking_perception_node.cpp
+  src/image_utils.cpp
   src/post_process/parking_perception_output_parser.cpp
 )
 
@@ -82,6 +75,7 @@ ament_target_dependencies(
   sensor_msgs
   ai_msgs
   OpenCV
+  cv_bridge
 )
 
 
@@ -98,13 +92,6 @@ endif ()
 include_directories(include
 ${PROJECT_SOURCE_DIR}
 )
-
-if (${CV_BRIDGE_PKG})
-ament_target_dependencies(
-  ${PROJECT_NAME}
-  cv_bridge
-)
-endif()
 
 # Install executables
 install(

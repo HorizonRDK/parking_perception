@@ -21,6 +21,7 @@
 #include "ai_msgs/msg/perception_targets.hpp"
 #include "dnn_node/dnn_node.h"
 #include "include/post_process/parking_perception_output_parser.h"
+#include "include/image_utils.h"
 #include "sensor_msgs/msg/image.hpp"
 #ifdef SHARED_MEM_ENABLED
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
