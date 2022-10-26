@@ -1,5 +1,9 @@
 # Changelog for package parking perception
 
+## tros_1.1.2rc2 (2022-10-26)
+
+1. 修复hhp_1.0.6RC1遗留的launch文件设置错误问题
+
 ## hhp_1.0.6RC1 (2022-09-08)
 
 1. 删除CV_BRIDGE_PKG设置，修复编译失败的问题
