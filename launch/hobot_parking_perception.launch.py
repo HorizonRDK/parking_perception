@@ -43,7 +43,7 @@ def generate_launch_description():
             {"is_loop": True}
         ],
         arguments=['--ros-args', '--log-level', 'error']
-    ),
+    )
 
     # mipi cam图片发布
     mipi_node = Node(
