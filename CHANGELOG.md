@@ -1,5 +1,9 @@
 # Changelog for package parking perception
 
+## tros_1.1.4 (2022-12-13)
+
+1. 在README文档中，增加板端编译时开关零拷贝的方法说明。
+
 ## tros_1.1.2rc2 (2022-10-26)
 
 1. 修复hhp_1.0.6RC1遗留的launch文件设置错误问题
