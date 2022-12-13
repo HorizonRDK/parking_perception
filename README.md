@@ -94,10 +94,9 @@ OpenCV用于图像处理。
    - 板端已安装X3 Ubuntu系统。
    - 当前编译终端已设置TogetherROS环境变量：`source PATH/setup.bash`。其中PATH为TogetherROS的安装路径。
    - 已安装ROS2编译工具colcon，安装命令：`pip install -U colcon-common-extensions`
-2. 编译
 
- 默认参数编译命令：`colcon build --packages-select parking_perception`
- 打开零拷贝编译命令：`colcon build --packages-select parking_perception --cmake-args -DBUILD_HBMEM=ON`
+2. 编译
+ 编译命令：`colcon build --packages-select parking_perception --cmake-args -DBUILD_HBMEM=ON`
 
 
 ### Docker交叉编译
