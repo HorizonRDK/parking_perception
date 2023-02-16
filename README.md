@@ -72,7 +72,7 @@ OpenCV用于图像处理。
 
 - 编程语言: C/C++
 - 开发平台: X3/X86
-- 系统版本：Ubuntu 20.0.4
+- 系统版本：Ubuntu 20.04
 - 编译工具链:Linux GCC 9.3.0/Linaro GCC 9.3.0
 
 ## 编译
@@ -88,7 +88,7 @@ OpenCV用于图像处理。
    - 如果关闭，编译和运行不依赖hbm_img_msgs pkg，支持使用原生ros和tros进行编译。
    - 对于零拷贝通信方式，当前只支持订阅nv12格式图片。
 
-### Ubuntu板端编译
+### Ubuntu板端编译X3版本
 
 1. 编译环境确认
    - 板端已安装X3 Ubuntu系统。
@@ -99,7 +99,7 @@ OpenCV用于图像处理。
  编译命令：`colcon build --packages-select parking_perception --cmake-args -DBUILD_HBMEM=ON`
 
 
-### Docker交叉编译
+### Docker交叉编译X3版本
 
 1. 编译环境确认
 
@@ -121,6 +121,25 @@ colcon build --packages-select parking_perception \
    --no-warn-unused-cli \
    -DCMAKE_TOOLCHAIN_FILE=`pwd`/robot_dev_config/aarch64_toolchainfile.cmake
 ```
+
+### X86 Ubuntu系统上编译 X86版本
+
+1. 编译环境确认
+
+   - x86 ubuntu版本: ubuntu20.04
+
+2. 编译
+
+   - 编译命令：
+
+   ```
+   colcon build --packages-select parking_perception  \
+      --merge-install \
+      --cmake-args \
+      -DPLATFORM_X86=ON \
+      -DBUILD_HBMEM=ON \
+      -DTHIRD_PARTY=`pwd`/../sysroot_docker \
+   ```
 
 ## 注意事项
 
@@ -148,7 +167,7 @@ colcon build --packages-select parking_perception \
 
 编译成功后，将生成的install路径拷贝到地平线旭日X3开发板上（如果是在X3上编译，忽略拷贝步骤），并执行如下命令运行：
 
-### **Ubuntu**
+### **Ubuntu X3**
 
 ```
 export COLCON_CURRENT_PREFIX=./install
@@ -162,7 +181,7 @@ ros2 run parking_perception parking_perception
 
 ```
 
-### **Ubuntu Launch启动**
+### **Ubuntu X3 Launch启动**
 
 ```
 export COLCON_CURRENT_PREFIX=./install
@@ -182,11 +201,25 @@ ros2 launch parking_perception hobot_parking_perception.launch.py
 
 ```
 
-### **Linux**
+### **Linux X3**
 
 ```
 export ROS_LOG_DIR=/userdata/
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:./install/lib/
+
+# config中为示例使用的模型，根据实际安装路径进行拷贝
+cp -r install/lib/parking_perception/config/ .
+
+# 启动parking检测node
+./install/lib/parking_perception/parking_perception
+
+```
+
+### **X86 Ubuntu**
+
+```
+export COLCON_CURRENT_PREFIX=./install
+source ./install/setup.bash
 
 # config中为示例使用的模型，根据实际安装路径进行拷贝
 cp -r install/lib/parking_perception/config/ .
