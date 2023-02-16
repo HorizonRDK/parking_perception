@@ -95,9 +95,6 @@ ament_target_dependencies(
 
 
 if (${BUILD_HBMEM})
-  # target_link_libraries(${PROJECT_NAME}
-  #   hbmem
-  # )
   ament_target_dependencies(
     ${PROJECT_NAME}
     hbm_img_msgs
