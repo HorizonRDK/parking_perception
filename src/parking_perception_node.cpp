@@ -377,7 +377,7 @@ int ParkingPerceptionNode::Predict(
     std::vector<std::shared_ptr<DNNInput>> &inputs,
     const std::shared_ptr<std::vector<hbDNNRoi>> rois,
     std::shared_ptr<DnnNodeOutput> dnn_output) {
-  return Run(inputs, dnn_output, rois, 0);
+  return Run(inputs, dnn_output, rois, -1);
 }
 
 void ParkingPerceptionNode::RosImgProcess(
