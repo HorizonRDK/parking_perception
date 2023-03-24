@@ -1,5 +1,9 @@
 # Changelog for package parking perception
 
+## tros_1.1.6rc1 (2023-02-16)
+
+1. 修复"超时推理任务等到推理完成"功能未生效问题。
+
 ## tros_1.1.6a (2023-02-16)
 
 1. 适配x86版本功能
