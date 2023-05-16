@@ -36,6 +36,7 @@ def generate_launch_description():
             'publish_image_format': 'jpg',
             'publish_output_image_w': '640',
             'publish_output_image_h': '320',
+            'publish_message_topic_name': '/hbmem_img',
             'publish_is_loop': 'True'
         }.items()
     )
