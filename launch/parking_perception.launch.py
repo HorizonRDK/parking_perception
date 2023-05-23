@@ -25,57 +25,84 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    # 本地图片发布
-    fb_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('hobot_image_publisher'),
-                'launch/hobot_image_publisher.launch.py')),
-        launch_arguments={
-            'publish_image_source': './config/images/2.jpg',
-            'publish_image_format': 'jpg',
-            'publish_output_image_w': '640',
-            'publish_output_image_h': '320',
-            'publish_message_topic_name': '/hbmem_img',
-            'publish_is_loop': 'True'
-        }.items()
-    )
+    camera_type = os.getenv('CAM_TYPE')
+    print("camera_type is ", camera_type)
 
-    # mipi cam图片发布
-    mipi_cam_device_arg = DeclareLaunchArgument(
-        'device',
-        default_value='GC4663',
-        description='mipi camera device')
+    camera_node = None
+    camera_type_mipi = None
+    camera_device_arg = None
 
-    mipi_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('mipi_cam'),
-                'launch/mipi_cam.launch.py')),
-        launch_arguments={
-            'mipi_image_width': '640',
-            'mipi_image_height': '320',
-            'mipi_io_method': 'shared_mem',
-            'mipi_video_device': LaunchConfiguration('device')
-        }.items()
-    )
+    if camera_type == "fb":
+        print("using feedback")
+        # local image publish
+        feedback_picture_arg = DeclareLaunchArgument(
+            'picture',
+            default_value='./config/images/2.jpg',
+            description='feedback picture')
+        fb_node = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory('hobot_image_publisher'),
+                    'launch/hobot_image_publisher.launch.py')),
+            launch_arguments={
+                'publish_image_source': LaunchConfiguration('picture'),
+                'publish_image_format': 'jpg',
+                'publish_output_image_w': '640',
+                'publish_output_image_h': '320',
+                'publish_message_topic_name': '/hbmem_img',
+                'publish_is_loop': 'True'
+            }.items()
+        )
+        camera_node = fb_node
+        camera_type_mipi = True
+        camera_device_arg = feedback_picture_arg
+    elif camera_type == "usb":
+        print("using usb camera")
+        # using usb cam publish image
+        usb_cam_device_arg = DeclareLaunchArgument(
+            'device',
+            default_value='/dev/video8',
+            description='usb camera device')
 
-    # usb cam图片发布
-    usb_cam_device_arg = DeclareLaunchArgument(
-        'device',
-        default_value='/dev/video8',
-        description='usb camera device')
-    usb_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('hobot_usb_cam'),
-                'launch/hobot_usb_cam.launch.py')),
-        launch_arguments={
-            'usb_image_width': '640',
-            'usb_image_height': '320',
-            'usb_video_device': LaunchConfiguration('device')
-        }.items()
-    )
+        usb_node = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory('hobot_usb_cam'),
+                    'launch/hobot_usb_cam.launch.py')),
+            launch_arguments={
+                'usb_image_width': '640',
+                'usb_image_height': '320',
+                'usb_video_device': LaunchConfiguration('device')
+            }.items()
+        )
+
+        camera_node = usb_node
+        camera_type_mipi = False
+        camera_device_arg = usb_cam_device_arg
+    else:
+        print("using mipi cam")
+        # using mipi cam publish image
+        mipi_cam_device_arg = DeclareLaunchArgument(
+            'device',
+            default_value='GC4663',
+            description='mipi camera device')
+
+        mipi_node = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory('mipi_cam'),
+                    'launch/mipi_cam.launch.py')),
+            launch_arguments={
+                'mipi_image_width': '640',
+                'mipi_image_height': '320',
+                'mipi_io_method': 'shared_mem',
+                'mipi_video_device': LaunchConfiguration('device')
+            }.items()
+        )
+
+        camera_node = mipi_node
+        camera_type_mipi = True
+        camera_device_arg = mipi_cam_device_arg
 
     # nv12->jpeg图片编码&发布
     jpeg_codec_node = IncludeLaunchDescription(
@@ -135,33 +162,11 @@ def generate_launch_description():
         }.items()
     )
 
-    camera_type = os.getenv('CAM_TYPE')
-    print("camera_type is ", camera_type)
-    cam_node = mipi_node
-    camera_type_mipi = True
-    if camera_type == "usb":
-        print("using usb cam")
-        cam_node = usb_node
-        camera_type_mipi = False
-    elif camera_type == "mipi":
-        print("using mipi cam")
-        cam_node = mipi_node
-        camera_type_mipi = True
-    elif camera_type == "fb":
-        print("using feedback")
-        cam_node = fb_node
-        camera_type_mipi = True
-    else:
-        print("invalid camera_type ", camera_type,
-              ", which is set with export CAM_TYPE=usb/mipi/fb, using default mipi cam")
-        cam_node = mipi_node
-        camera_type_mipi = True
-
     if camera_type_mipi:
         return LaunchDescription([
-            mipi_cam_device_arg,
+            camera_device_arg,
             # 图片发布
-            cam_node,
+            camera_node,
             # 图片编解码&发布
             jpeg_codec_node,
             # 启动算法
@@ -172,9 +177,9 @@ def generate_launch_description():
         ])
     else:
         return LaunchDescription([
-            usb_cam_device_arg,
+            camera_device_arg,
             # 图片发布
-            cam_node,
+            camera_node,
             # 图片编解码&发布
             nv12_codec_node,
             # 启动算法
@@ -183,4 +188,3 @@ def generate_launch_description():
             # 启动web展示
             web_node
         ])
- 
