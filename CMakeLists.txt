@@ -38,15 +38,7 @@ find_package(dnn_node REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-
-# BUILD_HBMEM is set in aarch64_toolchainfile.cmake
-if (${BUILD_HBMEM})
-  message("using shared mem")
-  find_package(hbm_img_msgs REQUIRED)
-  add_definitions(-DSHARED_MEM_ENABLED)
-else()
-  message("not using shared mem")
-endif ()
+find_package(hbm_img_msgs REQUIRED)
 
 include_directories(include
   ${PROJECT_SOURCE_DIR}
@@ -91,15 +83,8 @@ ament_target_dependencies(
   ai_msgs
   OpenCV
   cv_bridge
+  hbm_img_msgs
 )
-
-
-if (${BUILD_HBMEM})
-  ament_target_dependencies(
-    ${PROJECT_NAME}
-    hbm_img_msgs
-  )
-endif ()
 
 include_directories(include
 ${PROJECT_SOURCE_DIR}

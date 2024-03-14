@@ -110,7 +110,7 @@ class ParkingPerceptionNode : public DnnNode {
   rclcpp::Publisher<ai_msgs::msg::PerceptionTargets>::SharedPtr msg_publisher_;
 
 #ifdef SHARED_MEM_ENABLED
-  rclcpp::SubscriptionHbmem<hbm_img_msgs::msg::HbmMsg1080P>::ConstSharedPtr
+  rclcpp::Subscription<hbm_img_msgs::msg::HbmMsg1080P>::ConstSharedPtr
       sharedmem_img_subscription_ = nullptr;
   std::string sharedmem_img_topic_name_ = "/hbmem_img";
 #endif
