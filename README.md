@@ -2,7 +2,7 @@ English| [简体中文](./README_cn.md)
 
 # Function Introduction
 
-The `parking_perception` package is an outdoor parking area detection algorithm example developed based on the `hobot_dnn` package. It utilizes a multi-task reasoning model introduced by Horizon, using the parking area detection model on the Horizon Sunrise X3 platform and indoor data for model reasoning with BPU, thus obtaining AI reasoning results.
+The `parking_perception` package is an outdoor parking area detection algorithm example developed based on the `hobot_dnn` package. It utilizes a multi-task reasoning model introduced by Horizon, using the parking area detection model on the Sunrise X3 platform and indoor data for model reasoning with BPU, thus obtaining AI reasoning results.
 
 This package supports directly subscribing to topics of type `sensors/msg/Image` and supports inferring from local images. The AI information will be published through the topic while the results are visualized on a web page. It also supports saving the rendered images in the "result" directory during program execution.
 
@@ -31,7 +31,7 @@ The algorithm supports the following object detection categories:
 Each category includes information such as length, width, and category. The package externally publishes AI Msg containing semantic segmentation and object detection information, which users can subscribe to for application development.
 The complete description of the AI Msg is as follows:
 
-````
+```
 # Segmentation Message
 Capture[] captures
 Data Structure:
@@ -48,7 +48,9 @@ int rect.y_offset
 int rect.width
 int rect.height
 
-# Detection type names, e.g., cyclist/person/rear/vehicle/parkinglock```
+# Detection type names, e.g.cyclist, person, rear, vehicle, parkinglock
+# cyclist/person/rear/vehicle/parkinglock
+```
 
 # Compilation
 
@@ -60,7 +62,7 @@ ros package:
 - ai_msgs
 - OpenCV
 
-dnn_node is a package for model inference using the BPU processor on the Horizon Sunrise X3 development board, defined in hobot_dnn.
+dnn_node is a package for model inference using the BPU processor on the Sunrise X3 development board, defined in hobot_dnn.
 
 ai_msgs is a custom message format used to publish inference results after algorithm model inference, defined in hobot_msgs.
 
@@ -93,8 +95,7 @@ Supports compilation on X3 Ubuntu system and cross-compilation using Docker on P
    - Compilation is done in Docker, with TogetherROS already installed in Docker. For Docker installation, cross-compilation instructions, TogetherROS compilation, and deployment details, refer to the README.md in the robot development platform robot_dev_config repo.
 
 2. Compilation
-```- Compilation command:
-
+   - Compilation command:
 ```
 export TARGET_ARCH=aarch64
 export TARGET_TRIPLE=aarch64-linux-gnu
@@ -142,7 +143,8 @@ colcon build --packages-select parking_perception \
 ## Parameters
 
 | Parameter Name         | Type        | Description                                  | Required | Supported Configurations | Default Value                 |
-| ---------------------- | ----------- | -------------------------------------------- | -------- | ------------------------ | ----------------------------- || ai_msg_pub_topic_name  | std::string | Topic name for publishing AI messages containing detection results | No | Configured based on actual deployment environment | /ai_msg_parking_perception |
+| ---------------------- | ----------- | -------------------------------------------- | -------- | ------------------------ | ----------------------------- |
+| ai_msg_pub_topic_name  | std::string | Topic name for publishing AI messages containing detection results | No | Configured based on actual deployment environment | /ai_msg_parking_perception |
 | image_sub_topic_name | std::string | Topic name to subscribe to in the ROS2 message list | No | Configured based on actual deployment environment | /image_raw |
 | dump_render_img | int | Whether to save rendered images locally | No | Saved in the "result" directory | 0 |
 | shared_mem  | int | Whether to use shared memory communication to subscribe to image messages. 0: Off; 1: On. The topic names for subscribing to images using shared memory communication are /hbmem_img and /image_raw for Off and On respectively | No | 0/1 | 1 |
