@@ -40,36 +40,9 @@ std::once_flag center_flag;
 
 int32_t ParkingPerceptionOutputParser::Parse(
     std::shared_ptr<ParkingPerceptionResult> &output,
-    std::vector<std::shared_ptr<InputDescription>> &input_descriptions,
-    std::shared_ptr<OutputDescription> &output_descriptions,
-    std::shared_ptr<DNNTensor> &output_tensor,
-    std::vector<std::shared_ptr<OutputDescription>> &depend_output_descs,
-    std::vector<std::shared_ptr<DNNTensor>> &depend_output_tensors,
-    std::vector<std::shared_ptr<DNNResult>> &depend_outputs) {
-  if (!output_tensor) {
-    RCLCPP_ERROR(rclcpp::get_logger("ParkingPerceptionOutputParser"),
-                 "output_tensor invalid cast");
-    return -1;
-  }
+    std::vector<std::shared_ptr<DNNTensor>> &output_tensors) {
 
-  if (!input_descriptions.empty()) {
-    RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"),
-                 "empty input_descriptions");
-  }
-
-  if (output_descriptions) {
-    RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"),
-                 "type: %s, GetDependencies size: %d",
-                 output_descriptions->GetType().c_str(),
-                 output_descriptions->GetDependencies().size());
-    if (!output_descriptions->GetDependencies().empty()) {
-      RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"),
-                   "Dependencies: %d",
-                   output_descriptions->GetDependencies().front());
-    }
-  }
-
-  if (depend_output_tensors.size() < model_output_count_) {
+  if (output_tensors.size() < model_output_count_) {
     RCLCPP_ERROR(rclcpp::get_logger("ParkingPerceptionOutputParser"),
                  "depend out tensor size invalid cast");
     return -1;
@@ -86,14 +59,14 @@ int32_t ParkingPerceptionOutputParser::Parse(
   }
 
   int ret = 0;
-  ret = SegmentationPostProcess(depend_output_tensors, result->perception);
+  ret = SegmentationPostProcess(output_tensors, result->perception);
   if (ret != 0) {
     RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"),
                 "segmentation postprocess return error, code = %d",
                 ret);
   }
 
-  ret = DetectionPostProcess(depend_output_tensors, result->perception);
+  ret = DetectionPostProcess(output_tensors, result->perception);
   if (ret != 0) {
     RCLCPP_DEBUG(rclcpp::get_logger("ParkingPerceptionOutputParser"),
                 "detection postprocess return error, code = %d",

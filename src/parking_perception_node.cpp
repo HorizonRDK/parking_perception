@@ -23,13 +23,9 @@
 
 #include "dnn_node/dnn_node.h"
 #include "dnn_node/util/image_proc.h"
-// #include "include/image_utils.h"
 #include "rclcpp/rclcpp.hpp"
 #include <sys/stat.h>
 #include <cv_bridge/cv_bridge.h>
-
-using hobot::easy_dnn::OutputDescription;
-using hobot::easy_dnn::OutputParser;
 
 builtin_interfaces::msg::Time ConvertToRosTime(
     const struct timespec& time_spec) {
@@ -68,8 +64,8 @@ ParkingPerceptionNode::ParkingPerceptionNode(const std::string &node_name,
   std::stringstream ss;
   ss << "Parameter:"
      << "\nshared_men:" << shared_mem_ 
-     << "\n model_file_name_: " << model_file_name_
-     << "\dump_render_img_:" << dump_render_img_;
+     << "\nmodel_file_name_: " << model_file_name_
+     << "\ndump_render_img_:" << dump_render_img_;
   RCLCPP_WARN(rclcpp::get_logger("parking_perception"), "%s",
               ss.str().c_str());
   if (Start() == 0) {
@@ -151,57 +147,12 @@ int ParkingPerceptionNode::SetNodePara() {
   return 0;
 }
 
-int ParkingPerceptionNode::SetOutputParser() {
-  // set output parser
-  auto model_manage = GetModel();
-  if (!model_manage || !dnn_node_para_ptr_) {
-    RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
-                 "Invalid model");
-    return -1;
-  }
-
-  if (model_manage->GetOutputCount() < model_output_count_) {
-    RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
-                 "Error! Model %s output count is %d, unmatch with count %d",
-                 dnn_node_para_ptr_->model_name.c_str(),
-                 model_manage->GetOutputCount(), model_output_count_);
-    return -1;
-  }
-
-  // 1. single branch helper
-  for (int i = 0; i < output_index_; ++i) {
-    std::shared_ptr<OutputParser> assist_parser =
-        std::make_shared<ParkingPerceptionAssistParser>();
-    model_manage->SetOutputParser(i, assist_parser);
-  }
-
-  // 2. set multi branch paser
-  auto seg_output_desc = std::make_shared<OutputDescription>(
-      model_manage, output_index_, "seg_branch");
-  for (int i = 0; i < output_index_; ++i) {
-    seg_output_desc->GetDependencies().push_back(i);
-  }
-  seg_output_desc->SetType("seg");
-  model_manage->SetOutputDescription(seg_output_desc);
-  auto SegParser = std::make_shared<ParkingPerceptionOutputParser>();
-  std::shared_ptr<OutputParser> seg_out_parser =
-      std::dynamic_pointer_cast<OutputParser>(SegParser);
-  model_manage->SetOutputParser(output_index_, seg_out_parser);
-
-  return 0;
-}
-
-
 int ParkingPerceptionNode::PostProcess(
     const std::shared_ptr<DnnNodeOutput> &node_output) {
   if (!rclcpp::ok()) {
     return 0;
   }
   
-  if (!msg_publisher_) {
-    RCLCPP_ERROR(rclcpp::get_logger("example"), "Invalid msg_publisher_");
-    return -1;
-  }
 
   if (node_output->rt_stat->fps_updated) {
     RCLCPP_WARN(rclcpp::get_logger("parking_perception"),
@@ -223,17 +174,31 @@ int ParkingPerceptionNode::PostProcess(
                 ss.str().c_str());
   }
 
+  // 1. 获取后处理开始时间
   struct timespec time_start = {0, 0};
   clock_gettime(CLOCK_REALTIME, &time_start);
 
-  const auto &outputs = node_output->outputs;
-
-  if (outputs.empty() ||
-      static_cast<int32_t>(outputs.size()) < model_output_count_) {
+  // 2. 模型后处理解析
+  if (parking_perception_output->output_tensors.empty() ||
+      static_cast<int32_t>(parking_perception_output->output_tensors.size()) < model_output_count_) {
     RCLCPP_ERROR(rclcpp::get_logger("parking_perception"), "Invalid outputs");
     return -1;
   }
-  
+
+  auto SegParser = std::make_shared<ParkingPerceptionOutputParser>();
+  auto det_result = std::make_shared<ParkingPerceptionResult>();
+
+  int ret = SegParser->Parse(det_result, parking_perception_output->output_tensors);
+  if (ret != 0 || !det_result) {
+    RCLCPP_DEBUG(rclcpp::get_logger("PostProcess"), "invalid cast");
+    return 0;
+  }
+
+  // 3. 发布模型解析结果话题信息
+  if (!msg_publisher_) {
+    RCLCPP_ERROR(rclcpp::get_logger("example"), "Invalid msg_publisher_");
+    return -1;
+  }
 
   // get result
   ai_msgs::msg::PerceptionTargets::UniquePtr pub_data(
@@ -241,13 +206,6 @@ int ParkingPerceptionNode::PostProcess(
   if (parking_perception_output->image_msg_header_) {
     pub_data->header.set__stamp(parking_perception_output->image_msg_header_->stamp);
     pub_data->header.set__frame_id(parking_perception_output->image_msg_header_->frame_id);
-  }
-
-  auto *det_result =
-      dynamic_cast<ParkingPerceptionResult *>(outputs[output_index_].get());
-  if (!det_result) {
-    RCLCPP_DEBUG(rclcpp::get_logger("PostProcess"), "invalid cast");
-    return 0;
   }
 
   // render with each task
@@ -373,13 +331,6 @@ int ParkingPerceptionNode::PostProcess(
   return 0;
 }
 
-int ParkingPerceptionNode::Predict(
-    std::vector<std::shared_ptr<DNNInput>> &inputs,
-    const std::shared_ptr<std::vector<hbDNNRoi>> rois,
-    std::shared_ptr<DnnNodeOutput> dnn_output) {
-  return Run(inputs, dnn_output, rois, -1);
-}
-
 void ParkingPerceptionNode::RosImgProcess(
     const sensor_msgs::msg::Image::ConstSharedPtr img_msg) {
   if (!img_msg || !rclcpp::ok()) {
@@ -401,8 +352,9 @@ void ParkingPerceptionNode::RosImgProcess(
 
   // 1. 将图片处理成模型输入数据类型DNNInput
   // 使用图片生成pym，NV12PyramidInput为DNNInput的子类
-  std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
+  std::shared_ptr<hobot::dnn_node::NV12PyramidInput> pyramid = nullptr;
   if ("rgb8" == img_msg->encoding) {
+#ifdef CV_BRIDGE_PKG_ENABLED
     auto cv_img =
         cv_bridge::cvtColorForDisplay(cv_bridge::toCvShare(img_msg), "bgr8");
     {
@@ -413,12 +365,14 @@ void ParkingPerceptionNode::RosImgProcess(
       RCLCPP_DEBUG(rclcpp::get_logger("parking_perception"),
                    "after cvtColorForDisplay cost ms: %d", interval);
     }
-    pyramid = ImageUtils::GetNV12Pyramid(
+    pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromBGRImg(
         cv_img->image, 
         model_input_height_,
         model_input_width_);
+#else
     RCLCPP_ERROR(rclcpp::get_logger("parking_perception"),
                  "Unsupport cv bridge");
+#endif
   } else if ("nv12" == img_msg->encoding) {
     pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromNV12Img(
         reinterpret_cast<const char *>(img_msg->data.data()), 
@@ -459,7 +413,7 @@ void ParkingPerceptionNode::RosImgProcess(
   dnn_output->image_name_ = "";
 
   // 3. 开始预测
-  uint32_t ret = Predict(inputs, nullptr, dnn_output);
+  uint32_t ret = Run(inputs, dnn_output, nullptr, -1);
   {
     auto tp_now = std::chrono::system_clock::now();
     auto interval =
@@ -653,7 +607,7 @@ void ParkingPerceptionNode::SharedMemImgProcess(
 
   // 1. 将图片处理成模型输入数据类型DNNInput
   // 使用图片生成pym，NV12PyramidInput为DNNInput的子类
-  std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
+  std::shared_ptr<hobot::dnn_node::NV12PyramidInput> pyramid = nullptr;
   if ("nv12" ==
       std::string(reinterpret_cast<const char *>(img_msg->encoding.data()))) {
     pyramid = hobot::dnn_node::ImageProc::GetNV12PyramidFromNV12Img(
@@ -702,7 +656,7 @@ void ParkingPerceptionNode::SharedMemImgProcess(
   dnn_output->preprocess_timespec_end = time_now;
 
   // 3. 开始预测
-  int ret = Predict(inputs, nullptr, dnn_output);
+  int ret = Run(inputs, dnn_output, nullptr, -1);
   {
     auto tp_now = std::chrono::system_clock::now();
     auto interval =

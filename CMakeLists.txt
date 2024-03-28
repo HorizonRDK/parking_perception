@@ -38,7 +38,9 @@ find_package(dnn_node REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+
 find_package(hbm_img_msgs REQUIRED)
+add_definitions(-DSHARED_MEM_ENABLED)
 
 include_directories(include
   ${PROJECT_SOURCE_DIR}
@@ -71,7 +73,6 @@ link_directories(
 add_executable(${PROJECT_NAME}
   src/main.cpp
   src/parking_perception_node.cpp
-  src/image_utils.cpp
   src/post_process/parking_perception_output_parser.cpp
 )
 

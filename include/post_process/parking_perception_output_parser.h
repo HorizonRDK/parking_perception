@@ -27,20 +27,10 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
 
-#include "easy_dnn/data_structure.h"
-#include "easy_dnn/description.h"
-#include "easy_dnn/model.h"
-#include "easy_dnn/output_parser.h"
+#include "dnn_node/dnn_node.h"
 
-using hobot::easy_dnn::DNNResult;
-using hobot::easy_dnn::DNNTensor;
-using hobot::easy_dnn::InputDescription;
-using hobot::easy_dnn::Model;
-using hobot::easy_dnn::MultiBranchOutputParser;
-using hobot::easy_dnn::OutputDescription;
-using hobot::easy_dnn::OutputParser;
-using hobot::easy_dnn::SingleBranchOutputParser;
-
+using hobot::dnn_node::DNNTensor;
+using hobot::dnn_node::Model;
 
 struct ParkingConfig {
   std::vector<int> heights;
@@ -53,38 +43,22 @@ struct ParkingConfig {
 extern ParkingConfig default_parking_config;
 
 
-class ParkingPerceptionResult : public DNNResult {
+class ParkingPerceptionResult {
  public:
   Perception perception;
-  void Reset() override {
+  void Reset() {
     perception.seg.seg.clear();
     perception.seg.data.clear();
     perception.det.clear();
   }
 };
 
-class ParkingPerceptionAssistParser : public SingleBranchOutputParser<ParkingPerceptionResult> {
- public:
-  int32_t Parse(
-      std::shared_ptr<ParkingPerceptionResult>& output,
-      std::vector<std::shared_ptr<InputDescription>>& input_descriptions,
-      std::shared_ptr<OutputDescription>& output_description,
-      std::shared_ptr<DNNTensor>& output_tensor) override {
-    return 0;
-  }
-};
-
-class ParkingPerceptionOutputParser : public MultiBranchOutputParser<ParkingPerceptionResult> {
+class ParkingPerceptionOutputParser {
  public:
   int32_t Parse(
       std::shared_ptr<ParkingPerceptionResult> &output,
-      std::vector<std::shared_ptr<InputDescription>> &input_descriptions,
-      std::shared_ptr<OutputDescription> &output_descriptions,
-      std::shared_ptr<DNNTensor> &output_tensor,
-      std::vector<std::shared_ptr<OutputDescription>> &depend_output_descs,
-      std::vector<std::shared_ptr<DNNTensor>> &depend_output_tensors,
-      std::vector<std::shared_ptr<DNNResult>> &depend_outputs);
-      
+      std::vector<std::shared_ptr<DNNTensor>> &output_tensors);
+
  private:
 
   int SegmentationPostProcess(

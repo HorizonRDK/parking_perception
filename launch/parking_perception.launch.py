@@ -162,9 +162,18 @@ def generate_launch_description():
         }.items()
     )
 
+    shared_mem_node = IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    os.path.join(
+                        get_package_share_directory('hobot_shm'),
+                        'launch/hobot_shm.launch.py'))
+            )
+
     if camera_type_mipi:
         return LaunchDescription([
             camera_device_arg,
+            # 启动零拷贝环境配置node
+            shared_mem_node,
             # 图片发布
             camera_node,
             # 图片编解码&发布
@@ -178,6 +187,8 @@ def generate_launch_description():
     else:
         return LaunchDescription([
             camera_device_arg,
+            # 启动零拷贝环境配置node
+            shared_mem_node,
             # 图片发布
             camera_node,
             # 图片编解码&发布
