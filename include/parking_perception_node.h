@@ -21,7 +21,6 @@
 #include "ai_msgs/msg/perception_targets.hpp"
 #include "dnn_node/dnn_node.h"
 #include "include/post_process/parking_perception_output_parser.h"
-#include "include/image_utils.h"
 #include "sensor_msgs/msg/image.hpp"
 #ifdef SHARED_MEM_ENABLED
 #include "hbm_img_msgs/msg/hbm_msg1080_p.hpp"
@@ -39,7 +38,6 @@ using hobot::dnn_node::ModelTaskType;
 using hobot::dnn_node::TaskId;
 
 using hobot::dnn_node::DNNInput;
-using hobot::dnn_node::DNNResult;
 using hobot::dnn_node::NV12PyramidInput;
 
 struct ParkingPerceptionOutput : public DnnNodeOutput {
@@ -49,7 +47,7 @@ struct ParkingPerceptionOutput : public DnnNodeOutput {
   std::string image_name_;
 
   std_msgs::msg::Header::_stamp_type stamp;
-  std::shared_ptr<hobot::easy_dnn::NV12PyramidInput> pyramid = nullptr;
+  std::shared_ptr<hobot::dnn_node::NV12PyramidInput> pyramid = nullptr;
 
   struct timespec preprocess_timespec_start;
   struct timespec preprocess_timespec_end;
@@ -63,15 +61,11 @@ class ParkingPerceptionNode : public DnnNode {
 
  protected:
   int SetNodePara() override;
-  int SetOutputParser() override;
   int PostProcess(const std::shared_ptr<DnnNodeOutput> &outputs) override;
 
  private:
   void GetConfig();
   int Start();
-  int Predict(std::vector<std::shared_ptr<DNNInput>> &inputs,
-              const std::shared_ptr<std::vector<hbDNNRoi>> rois,
-              std::shared_ptr<DnnNodeOutput> dnn_output);
   void RosImgProcess(const sensor_msgs::msg::Image::ConstSharedPtr img_msg);
 
   void RenderParkingPerception(

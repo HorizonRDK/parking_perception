@@ -1,5 +1,10 @@
 # Changelog for package parking perception
 
+## tros_2.1.0 (2024-03-28)
+------------------
+1. 新增适配ros2 humble零拷贝。
+2. 适配重构dnn_node。
+
 ## tros_2.0.1 (2023-07-14)
 ------------------
 1. 规范Rdkultra产品名。

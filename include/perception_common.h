@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-#include "easy_dnn/data_structure.h"
+#include "dnn_node/dnn_node.h"
 
 
 /**
